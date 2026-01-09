@@ -58,10 +58,24 @@ Arch Linux:
 sudo pacman -S python-pip libxcb xcb-util xcb-util-image xcb-util-renderutil xcb-util-keysyms libxkbcommon-x11 mesa
 ```
 
-#### Application (all platforms)
+#### Application installation
+
+**Linux (Debian/Ubuntu with PEP 668):**
+```bash
+pip install --user git+https://github.com/p01t3rge1st/raysid-app.git
+```
+
+**Linux (using pipx - recommended):**
+```bash
+pipx install git+https://github.com/p01t3rge1st/raysid-app.git
+```
+
+**Windows/macOS:**
 ```bash
 pip install git+https://github.com/p01t3rge1st/raysid-app.git
 ```
+
+After installation, ensure `~/.local/bin` (Linux) or the appropriate Scripts directory is in your PATH.
 
 ## Usage
 Launch the application and connect to a Raysid device:
@@ -77,6 +91,19 @@ Steps:
 - Select a device and click Connect
 
 ## Troubleshooting
+
+### "externally-managed-environment" error (Debian/Ubuntu)
+Modern Debian-based systems use PEP 668 to prevent pip conflicts. Use one of these methods:
+- **Recommended:** `pip install --user git+https://github.com/p01t3rge1st/raysid-app.git`
+- **Alternative:** `pipx install git+https://github.com/p01t3rge1st/raysid-app.git`
+- **Quick installer:** Use the automated `install.sh` script (see Quick Install section)
+
+### "command not found: raysid-app"
+Ensure `~/.local/bin` is in your PATH:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+Add this line to your `~/.bashrc` or `~/.zshrc` to make it permanent.
 
 ### Linux: "Could not find the Qt platform plugin xcb"
 Install the system libraries listed in the Linux section above. The application also sets `QT_QPA_PLATFORM_PLUGIN_PATH` automatically based on the PyQt5 installation.
