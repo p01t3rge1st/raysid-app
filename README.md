@@ -1,6 +1,6 @@
-# Raysid Gamma Spectrometer
+# Raysid App
 
-Raysid is a cross-platform desktop application for interfacing with Raysid gamma spectrometer devices via Bluetooth Low Energy (BLE). The application provides real-time CPS and dose rate readouts, spectrum visualization, and device status monitoring through a modern PyQt5 user interface.
+Raysid App is a cross-platform desktop application for interfacing with Raysid gamma spectrometer devices via Bluetooth Low Energy (BLE). The application provides real-time CPS and dose rate readouts, spectrum visualization, and device status monitoring through a modern PyQt5 user interface.
 
 ## Features
 - BLE device discovery and connection management
@@ -132,7 +132,7 @@ pip install -e .
 ## License
 MIT License. See LICENSE for details.
 
-# 🔬 Raysid Gamma Spectrometer
+# 🔬 Raysid App
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+">
@@ -167,7 +167,7 @@ One command to install everything (system dependencies, app, and desktop icon):
 curl -fsSL https://raw.githubusercontent.com/p01t3rge1st/raysid-app/main/install.sh | bash
 ```
 
-Then run: `raysid-app` or find "Raysid Gamma Spectrometer" in your application menu.
+Then run: `raysid-app` or find "Raysid App" in your application menu.
 
 ---
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Raysid Gamma Spectrometer - PyQt5 Application
+Raysid App - PyQt5 Application
 
 Desktop GUI for interfacing with Raysid gamma spectrometer devices via BLE:
 - BLE device scanning and connection
@@ -64,7 +64,7 @@ def main():
     global _window, _loop
     
     app = QApplication(sys.argv)
-    app.setApplicationName("Raysid Gamma Spectrometer")
+    app.setApplicationName("Raysid App")
     app.setOrganizationName("Raysid")
 
     # Use qasync for proper Qt-asyncio integration

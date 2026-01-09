@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Raysid Gamma Spectrometer - Installer
+# Raysid App - Installer
 # Automatically installs system dependencies, the application, and creates a desktop entry
 #
 set -euo pipefail
@@ -22,34 +22,71 @@ print_success() { echo -e "${GREEN}✓${NC} $1"; }
 print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 print_error() { echo -e "${RED}✗${NC} $1"; }
 
+# Detect OS and package manager
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "linux"
+    else
+        echo "unknown"
+    fi
+}
+
 # Detect package manager and install system dependencies
 install_system_deps() {
     print_step "Installing system dependencies..."
     
-    if command -v apt-get &>/dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y python3-pip python3-venv \
-            libxcb-xinerama0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 \
-            libxcb-image0 libxcb-render-util0 libxkbcommon-x11-0 libgl1
-    elif command -v dnf &>/dev/null; then
-        sudo dnf install -y python3-pip python3-virtualenv \
-            libxcb xcb-util xcb-util-image xcb-util-renderutil \
-            xcb-util-keysyms libxkbcommon-x11 mesa-libGL
-    elif command -v pacman &>/dev/null; then
-        sudo pacman -Sy --noconfirm python-pip python-virtualenv \
-            libxcb xcb-util xcb-util-image xcb-util-renderutil \
-            xcb-util-keysyms libxkbcommon-x11 mesa
+    OS_TYPE=$(detect_os)
+    
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        # macOS with Homebrew
+        if ! command -v brew &>/dev/null; then
+            print_step "Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            
+            # Add brew to PATH for this session
+            if [[ -f "/opt/homebrew/bin/brew" ]]; then
+                eval "$(/opt/homebrew/bin/brew shellenv)"
+            elif [[ -f "/usr/local/bin/brew" ]]; then
+                eval "$(/usr/local/bin/brew shellenv)"
+            fi
+        fi
+        
+        brew install python@3.11 || true
+        print_success "System dependencies installed (macOS)"
+        
+    elif [[ "$OS_TYPE" == "linux" ]]; then
+        # Linux package managers
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y python3-pip python3-venv \
+                libxcb-xinerama0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 \
+                libxcb-image0 libxcb-render-util0 libxkbcommon-x11-0 libgl1
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y python3-pip python3-virtualenv \
+                libxcb xcb-util xcb-util-image xcb-util-renderutil \
+                xcb-util-keysyms libxkbcommon-x11 mesa-libGL
+        elif command -v pacman &>/dev/null; then
+            sudo pacman -Sy --noconfirm python-pip python-virtualenv \
+                libxcb xcb-util xcb-util-image xcb-util-renderutil \
+                xcb-util-keysyms libxkbcommon-x11 mesa
+        else
+            print_warning "Unknown package manager. Please install Python 3.10+ and XCB/OpenGL libraries manually."
+            return 1
+        fi
+        print_success "System dependencies installed (Linux)"
     else
-        print_warning "Unknown package manager. Please install Python 3.10+ and XCB/OpenGL libraries manually."
+        print_error "Unsupported OS"
         return 1
     fi
-    
-    print_success "System dependencies installed"
 }
 
 # Install the Python package
 install_app() {
     print_step "Installing $APP_NAME..."
+    
+    OS_TYPE=$(detect_os)
     
     # Try to use pipx (best practice for PEP 668)
     if command -v pipx &>/dev/null; then
@@ -61,7 +98,13 @@ install_app() {
     
     # Try to install pipx from system package manager
     print_step "Installing pipx..."
-    if command -v apt-get &>/dev/null; then
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        brew install pipx
+        pipx ensurepath
+        pipx install "git+${REPO_URL}" --force
+        print_success "$APP_NAME installed via pipx (macOS)"
+        return 0
+    elif command -v apt-get &>/dev/null; then
         sudo apt-get install -y pipx
         pipx install "git+${REPO_URL}" --force
         print_success "$APP_NAME installed via pipx"
@@ -111,11 +154,28 @@ create_desktop_entry() {
     
     # Get icon from installed package
     ICON_PATH="$ICON_DIR/raysid-app.png"
-    PACKAGE_ICON=$(python3 -c "import raysid, os; print(os.path.join(os.path.dirname(raysid.__file__), 'resources', 'icon.png'))" 2>/dev/null || echo "")
     
-    if [[ -f "$PACKAGE_ICON" ]]; then
-        cp "$PACKAGE_ICON" "$ICON_PATH"
-        print_success "Icon installed"
+    # Try to find icon in pipx environment first
+    if command -v pipx &>/dev/null && pipx list | grep -q raysid-app; then
+        PACKAGE_ICON=$(pipx runpip raysid-app show -f raysid-app | grep 'resources/icon.png' | awk '{print $1}')
+        if [[ -n "$PACKAGE_ICON" ]]; then
+            PIPX_VENV=$(pipx environment --value PIPX_LOCAL_VENVS)/raysid-app
+            FULL_ICON_PATH="$PIPX_VENV/lib/python*/site-packages/raysid/resources/icon.png"
+            FULL_ICON_PATH=$(echo $FULL_ICON_PATH)  # Expand glob
+            if [[ -f "$FULL_ICON_PATH" ]]; then
+                cp "$FULL_ICON_PATH" "$ICON_PATH"
+                print_success "Icon installed from pipx package"
+            fi
+        fi
+    # Try venv installation
+    elif [[ -f "$HOME/.local/share/raysid-venv/lib/python3*/site-packages/raysid/resources/icon.png" ]]; then
+        VENV_ICON=$(echo "$HOME/.local/share/raysid-venv/lib/python3*/site-packages/raysid/resources/icon.png")
+        cp "$VENV_ICON" "$ICON_PATH"
+        print_success "Icon installed from venv"
+    # Try local source if running from repo
+    elif [[ -f "src/raysid/resources/icon.png" ]]; then
+        cp "src/raysid/resources/icon.png" "$ICON_PATH"
+        print_success "Icon installed from local source"
     else
         print_warning "Icon not found in package. Using default icon."
         ICON_PATH="applications-science"
@@ -125,7 +185,7 @@ create_desktop_entry() {
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Raysid Gamma Spectrometer
+Name=Raysid App
 Comment=Desktop application for Raysid gamma spectrometer via BLE
 Exec=$HOME/.local/bin/raysid-app
 Icon=$ICON_PATH
@@ -149,7 +209,7 @@ EOF
 main() {
     echo ""
     echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${NC}   🔬 Raysid Gamma Spectrometer Installer   ${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC}   🔬 Raysid App Installer   ${BLUE}║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
     echo ""
     
@@ -171,7 +231,7 @@ main() {
     echo -e "${GREEN}════════════════════════════════════════════${NC}"
     echo ""
     echo "  Run from terminal:  raysid-app"
-    echo "  Or find 'Raysid Gamma Spectrometer' in your application menu"
+    echo "  Or find 'Raysid App' in your application menu"
     echo ""
     
     # Hint about PATH

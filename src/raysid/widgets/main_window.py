@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.ping_interval_ms = 10000
 
     def _init_ui(self):
-        self.setWindowTitle("Raysid Gamma Spectrometer")
+        self.setWindowTitle("Raysid App")
         self.setMinimumSize(1000, 700)
 
         central = QWidget()
