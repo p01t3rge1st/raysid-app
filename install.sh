@@ -51,29 +51,55 @@ install_system_deps() {
 install_app() {
     print_step "Installing $APP_NAME..."
     
-    # Check if pipx is available
-    if ! command -v pipx &>/dev/null; then
-        print_step "Installing pipx..."
-        if command -v apt-get &>/dev/null; then
-            sudo apt-get install -y pipx
-        elif command -v dnf &>/dev/null; then
-            sudo dnf install -y pipx
-        elif command -v pacman &>/dev/null; then
-            sudo pacman -S --noconfirm python-pipx
-        else
-            # Fallback to pip user install
-            python3 -m pip install --user pipx
-        fi
-        
-        # Ensure pipx path is set
-        python3 -m pipx ensurepath 2>/dev/null || true
+    # Try to use pipx (best practice for PEP 668)
+    if command -v pipx &>/dev/null; then
+        print_step "Using pipx for installation..."
+        pipx install "git+${REPO_URL}" --force
+        print_success "$APP_NAME installed via pipx"
+        return 0
+    fi
+    
+    # Try to install pipx from system package manager
+    print_step "Installing pipx..."
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y pipx
+        pipx install "git+${REPO_URL}" --force
+        print_success "$APP_NAME installed via pipx"
+        return 0
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y pipx
+        pipx install "git+${REPO_URL}" --force
+        print_success "$APP_NAME installed via pipx"
+        return 0
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm python-pipx
+        pipx install "git+${REPO_URL}" --force
+        print_success "$APP_NAME installed via pipx"
+        return 0
+    fi
+    
+    # Fallback: create dedicated venv for the app
+    print_warning "pipx not available, creating dedicated virtual environment..."
+    VENV_DIR="$HOME/.local/share/raysid-venv"
+    BIN_LINK="$HOME/.local/bin/raysid-app"
+    
+    python3 -m venv "$VENV_DIR"
+    "$VENV_DIR/bin/pip" install --upgrade pip
+    "$VENV_DIR/bin/pip" install "git+${REPO_URL}"
+    
+    # Create symlink to make it globally available
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$VENV_DIR/bin/raysid-app" "$BIN_LINK"
+    
+    # Ensure PATH includes ~/.local/bin
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        print_warning "Adding ~/.local/bin to PATH in shell config"
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc" 2>/dev/null || true
         export PATH="$HOME/.local/bin:$PATH"
     fi
     
-    # Install using pipx (creates isolated venv automatically)
-    pipx install "git+${REPO_URL}" --force
-    
-    print_success "$APP_NAME installed"
+    print_success "$APP_NAME installed in dedicated venv"
 }
 
 # Create desktop entry with icon
