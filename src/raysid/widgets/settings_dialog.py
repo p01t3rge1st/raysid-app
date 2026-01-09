@@ -65,19 +65,6 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(smooth_group)
 
-        # --- Device Group ---
-        device_group = QGroupBox("Saved Device")
-        device_layout = QVBoxLayout(device_group)
-
-        self.saved_device_label = QLabel("No saved device")
-        device_layout.addWidget(self.saved_device_label)
-
-        self.forget_btn = QPushButton("Forget Saved Device")
-        self.forget_btn.clicked.connect(self._on_forget_device)
-        device_layout.addWidget(self.forget_btn)
-
-        layout.addWidget(device_group)
-
         # --- Buttons ---
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
@@ -105,18 +92,9 @@ class SettingsDialog(QDialog):
         """Load settings from QSettings."""
         sensitivity = self.settings.value("peak/sensitivity", 50, type=int)
         smooth_window = self.settings.value("smooth/window", 21, type=int)
-        saved_device = self.settings.value("device/last_address", "")
-        saved_name = self.settings.value("device/last_name", "")
 
         self.sensitivity_slider.setValue(sensitivity)
         self.smooth_slider.setValue(smooth_window)
-        
-        if saved_device:
-            self.saved_device_label.setText(f"{saved_name}\n({saved_device})")
-            self.forget_btn.setEnabled(True)
-        else:
-            self.saved_device_label.setText("No saved device")
-            self.forget_btn.setEnabled(False)
 
     def _save_and_close(self):
         """Save settings and close dialog."""
@@ -124,15 +102,6 @@ class SettingsDialog(QDialog):
         self.settings.setValue("smooth/window", self.smooth_slider.value())
         self.settings.sync()
         self.accept()
-
-    def _on_forget_device(self):
-        """Clear saved device."""
-        self.settings.remove("device/last_address")
-        self.settings.remove("device/last_name")
-        self.settings.sync()
-        self.saved_device_label.setText("No saved device")
-        self.forget_btn.setEnabled(False)
-        QMessageBox.information(self, "Device Forgotten", "Saved device has been cleared.")
 
     def get_peak_sensitivity(self) -> int:
         """Get peak detection sensitivity (1-100)."""

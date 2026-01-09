@@ -39,7 +39,6 @@ class MainWindow(QMainWindow):
 
         self._init_ui()
         self._connect_signals()
-        self._load_last_device()
 
         # Periodic ping timer (every 10s when connected to spectrum tab)
         self.ping_timer = QTimer(self)
@@ -134,6 +133,9 @@ class MainWindow(QMainWindow):
             self.scanned_devices = raysid_devs
             for dev in raysid_devs:
                 self.device_combo.addItem(f"{dev['name']} ({dev['address']})", dev['address'])
+            # Auto-select first Raysid device
+            if raysid_devs:
+                self.device_combo.setCurrentIndex(0)
             self.status_bar.showMessage(f"Found {len(raysid_devs)} Raysid device(s)")
         except Exception as e:
             self.status_bar.showMessage(f"Scan failed: {e}")
@@ -163,8 +165,6 @@ class MainWindow(QMainWindow):
             self.connect_btn.setEnabled(False)
             self.disconnect_btn.setEnabled(True)
             self.scan_btn.setEnabled(False)
-            # Save device for next time
-            self._save_last_device()
             # Start ping timer
             self.ping_timer.start(self.ping_interval_ms)
             # Send initial ping for current tab
@@ -232,27 +232,6 @@ class MainWindow(QMainWindow):
         self.scan_btn.setEnabled(True)
         self.battery_label.setText("Battery: --")
         self.temp_label.setText("Temp: --")
-
-    def _load_last_device(self):
-        """Load last connected device from settings."""
-        addr = self.settings.value("device/last_address", "")
-        name = self.settings.value("device/last_name", "")
-        if addr:
-            self.device_combo.addItem(f"{name} ({addr})", addr)
-            self.device_combo.setCurrentIndex(0)
-            self.status_bar.showMessage(f"Last device: {name}. Press Connect or Scan for others.")
-
-    def _save_last_device(self):
-        """Save current device to settings."""
-        addr = self.device_combo.currentData()
-        text = self.device_combo.currentText()
-        # Extract name from "Name (address)" format
-        name = text.split(" (")[0] if " (" in text else text
-        if addr:
-            self.settings.setValue("device/last_address", addr)
-            self.settings.setValue("device/last_name", name)
-            self.settings.sync()
-            self.logger.info(f"Saved device: {name} ({addr})")
 
     def _on_settings(self):
         """Open settings dialog."""
