@@ -99,3 +99,15 @@ dmypy.json
 # Project specific
 *.log
 raysid_debug.log
+
+# Documentation (internal)
+instr.md
+DOKUMENTACJA_TECHNICZNA.md
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*~
+.DS_Store
+Thumbs.db
