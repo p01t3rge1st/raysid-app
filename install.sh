@@ -394,21 +394,43 @@ ensure_path_configured() {
     
     export PATH="$BIN_DIR:$PATH"
     
-    # Add to shell configs
-    local shell_configs=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$HOME/.bash_profile")
+    # Detect user's actual shell and only modify that config
+    local user_shell
+    user_shell=$(basename "${SHELL:-/bin/bash}")
     local path_line='export PATH="$HOME/.local/bin:$PATH"'
+    local config_file=""
     
-    for config in "${shell_configs[@]}"; do
-        if [[ -f "$config" ]]; then
-            if ! grep -q '.local/bin' "$config" 2>/dev/null; then
-                echo "" >> "$config"
-                echo "# Added by raysid-app installer" >> "$config"
-                echo "$path_line" >> "$config"
+    case "$user_shell" in
+        zsh)
+            config_file="$HOME/.zshrc"
+            ;;
+        bash)
+            # Prefer .bashrc on Linux, .bash_profile on macOS
+            if [[ -f "$HOME/.bashrc" ]]; then
+                config_file="$HOME/.bashrc"
+            else
+                config_file="$HOME/.bash_profile"
             fi
-        fi
-    done
+            ;;
+        fish)
+            # Fish uses different syntax
+            config_file="$HOME/.config/fish/config.fish"
+            path_line='set -gx PATH $HOME/.local/bin $PATH'
+            ;;
+        *)
+            config_file="$HOME/.profile"
+            ;;
+    esac
     
-    print_warning "Added ~/.local/bin to PATH. Restart terminal for permanent effect."
+    if [[ -n "$config_file" ]]; then
+        mkdir -p "$(dirname "$config_file")" 2>/dev/null || true
+        if ! grep -q '.local/bin' "$config_file" 2>/dev/null; then
+            echo "" >> "$config_file"
+            echo "# Added by raysid-app installer" >> "$config_file"
+            echo "$path_line" >> "$config_file"
+            print_success "Added ~/.local/bin to PATH in $config_file"
+        fi
+    fi
 }
 
 # Find the installed raysid-app command
