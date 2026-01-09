@@ -30,10 +30,10 @@ Python dependencies are installed automatically via `pip`:
 ## Installation
 
 ### Quick Install (Linux)
-Installs system libraries, the application, and a desktop entry with icon.
+Automatically installs system libraries, pipx (if needed), the application in an isolated virtual environment, and a desktop entry with icon.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/p01t3rge1st/raysid-app/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/p01t3rge1st/raysid-app/master/install.sh | bash
 ```
 
 After installation, launch from the application menu or run `raysid-app` in the terminal.

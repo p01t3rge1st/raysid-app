@@ -51,15 +51,27 @@ install_system_deps() {
 install_app() {
     print_step "Installing $APP_NAME..."
     
-    # Ensure ~/.local/bin is in PATH
-    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-        print_warning "Adding ~/.local/bin to PATH in your shell config"
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc" 2>/dev/null || true
+    # Check if pipx is available
+    if ! command -v pipx &>/dev/null; then
+        print_step "Installing pipx..."
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get install -y pipx
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y pipx
+        elif command -v pacman &>/dev/null; then
+            sudo pacman -S --noconfirm python-pipx
+        else
+            # Fallback to pip user install
+            python3 -m pip install --user pipx
+        fi
+        
+        # Ensure pipx path is set
+        python3 -m pipx ensurepath 2>/dev/null || true
         export PATH="$HOME/.local/bin:$PATH"
     fi
     
-    pip install --user "git+${REPO_URL}"
+    # Install using pipx (creates isolated venv automatically)
+    pipx install "git+${REPO_URL}" --force
     
     print_success "$APP_NAME installed"
 }
