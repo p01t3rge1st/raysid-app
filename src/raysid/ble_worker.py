@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
+import os
 import time
 from datetime import datetime
 from typing import Optional, Callable, Dict
@@ -12,9 +12,16 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 from bleak import BleakClient
 
-# File logger for debugging
-_log_file = open("raysid_debug.log", "a")
+# File logger for debugging (writes to user's home directory)
+_log_path = os.path.join(os.path.expanduser("~"), ".raysid_debug.log")
+try:
+    _log_file = open(_log_path, "a")
+except (IOError, PermissionError):
+    _log_file = None
+
 def log_to_file(msg: str):
+    if _log_file is None:
+        return
     ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     _log_file.write(f"{ts} {msg}\n")
     _log_file.flush()

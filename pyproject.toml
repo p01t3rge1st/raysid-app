@@ -42,8 +42,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/twój-user/raysid-app"
-Repository = "https://github.com/twój-user/raysid-app.git"
+Homepage = "https://github.com/p01t3rge1st/raysid-app"
+Repository = "https://github.com/p01t3rge1st/raysid-app.git"
 
 [project.scripts]
 raysid-app = "raysid.__main__:main"
