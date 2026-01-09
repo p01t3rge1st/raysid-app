@@ -200,6 +200,43 @@ class SpectrumWidget(QWidget):
         self.smooth_window = max(5, min(51, value))
         self.settings.setValue("smooth/window", self.smooth_window)
 
+    def set_theme(self, theme: str):
+        """Set the theme for the spectrum plot ('light' or 'dark')."""
+        if theme == "dark":
+            # Dark theme colors
+            self.figure.patch.set_facecolor('#2b2b2b')
+            self.ax.set_facecolor('#2b2b2b')
+            self.ax.spines['bottom'].set_color('white')
+            self.ax.spines['top'].set_color('white')
+            self.ax.spines['right'].set_color('white')
+            self.ax.spines['left'].set_color('white')
+            self.ax.tick_params(axis='x', colors='white')
+            self.ax.tick_params(axis='y', colors='white')
+            self.ax.xaxis.label.set_color('white')
+            self.ax.yaxis.label.set_color('white')
+            self.ax.title.set_color('white')
+            # Spectrum line: light yellow on dark background
+            self.line.set_color('#FFDD00')
+            self.smooth_line.set_color('#FFFF00')
+        else:
+            # Light theme colors (default)
+            self.figure.patch.set_facecolor('white')
+            self.ax.set_facecolor('white')
+            self.ax.spines['bottom'].set_color('black')
+            self.ax.spines['top'].set_color('black')
+            self.ax.spines['right'].set_color('black')
+            self.ax.spines['left'].set_color('black')
+            self.ax.tick_params(axis='x', colors='black')
+            self.ax.tick_params(axis='y', colors='black')
+            self.ax.xaxis.label.set_color('black')
+            self.ax.yaxis.label.set_color('black')
+            self.ax.title.set_color('black')
+            # Spectrum line: blue on light background
+            self.line.set_color('b')
+            self.smooth_line.set_color('r')
+        
+        self._redraw()
+
     def _redraw(self):
         # Clear old annotations
         self._clear_annotations()

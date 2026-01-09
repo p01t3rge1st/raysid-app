@@ -15,7 +15,7 @@ from PyQt5.QtGui import QIcon
 
 from raysid.widgets.spectrum_widget import SpectrumWidget
 from raysid.widgets.cps_widget import CPSWidget
-from raysid.widgets.settings_dialog import SettingsDialog
+from raysid.widgets.settings_dialog import SettingsDialog, detect_system_theme
 from raysid.ble_worker import BleWorker
 
 
@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
 
         self._init_ui()
         self._connect_signals()
+        self.apply_theme()
 
         # Periodic ping timer (every 10s when connected to spectrum tab)
         self.ping_timer = QTimer(self)
@@ -241,6 +242,9 @@ class MainWindow(QMainWindow):
             self.spectrum_widget.set_peak_sensitivity(dialog.get_peak_sensitivity())
             self.spectrum_widget.set_smooth_window(dialog.get_smooth_window())
             self.spectrum_widget._redraw()
+            
+            # Apply theme
+            self.apply_theme(dialog.get_theme())
 
     def _on_tab_changed(self, index: int):
         # Send ping with appropriate tab value
@@ -281,6 +285,182 @@ class MainWindow(QMainWindow):
                 self.logger.warning(f"Cleanup disconnect error: {e}")
             finally:
                 self.ble_worker = None
+
+    def apply_theme(self, theme: Optional[str] = None):
+        """Apply the selected theme to the application.
+        
+        Args:
+            theme: Optional theme name ('light', 'dark', 'system'). If not provided,
+                   reads from settings.
+        """
+        if theme is not None:
+            # Save the new theme to settings
+            self.settings.setValue("ui/theme", theme)
+            self.settings.sync()
+            theme_setting = theme
+        else:
+            theme_setting = self.settings.value("ui/theme", "system", type=str)
+        
+        if theme_setting == "system":
+            actual_theme = detect_system_theme()
+        else:
+            actual_theme = theme_setting
+        
+        if actual_theme == "dark":
+            self._apply_dark_theme()
+        else:
+            self._apply_light_theme()
+        
+        # Update spectrum widget theme
+        self.spectrum_widget.set_theme(actual_theme)
+        # Update CPS widget theme  
+        self.cps_widget.set_theme(actual_theme)
+
+    def _apply_light_theme(self):
+        """Apply light theme styles."""
+        self.setStyleSheet("""
+            QMainWindow, QWidget {
+                background-color: #ffffff;
+                color: #000000;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #cccccc;
+                border-radius: 5px;
+                margin-top: 1ex;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 10px 0 10px;
+            }
+            QPushButton {
+                background-color: #f0f0f0;
+                border: 1px solid #cccccc;
+                padding: 5px 10px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0;
+            }
+            QPushButton:disabled {
+                background-color: #f5f5f5;
+                color: #999999;
+            }
+            QComboBox {
+                background-color: white;
+                border: 1px solid #cccccc;
+                padding: 2px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid #666666;
+                margin-right: 5px;
+            }
+            QStatusBar {
+                background-color: #f0f0f0;
+                border-top: 1px solid #cccccc;
+            }
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+            }
+            QTabBar::tab {
+                background-color: #f0f0f0;
+                border: 1px solid #cccccc;
+                padding: 5px 10px;
+            }
+            QTabBar::tab:selected {
+                background-color: white;
+            }
+        """)
+
+    def _apply_dark_theme(self):
+        """Apply dark theme styles."""
+        self.setStyleSheet("""
+            QMainWindow, QWidget {
+                background-color: #2b2b2b;
+                color: #ffffff;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #555555;
+                border-radius: 5px;
+                margin-top: 1ex;
+                color: #ffffff;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 10px 0 10px;
+                color: #ffffff;
+            }
+            QPushButton {
+                background-color: #404040;
+                border: 1px solid #666666;
+                padding: 5px 10px;
+                border-radius: 3px;
+                color: #ffffff;
+            }
+            QPushButton:hover {
+                background-color: #505050;
+            }
+            QPushButton:pressed {
+                background-color: #606060;
+            }
+            QPushButton:disabled {
+                background-color: #333333;
+                color: #888888;
+            }
+            QComboBox {
+                background-color: #404040;
+                border: 1px solid #666666;
+                padding: 2px;
+                color: #ffffff;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid #cccccc;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #404040;
+                color: #ffffff;
+                selection-background-color: #606060;
+            }
+            QStatusBar {
+                background-color: #404040;
+                border-top: 1px solid #666666;
+                color: #ffffff;
+            }
+            QTabWidget::pane {
+                border: 1px solid #666666;
+            }
+            QTabBar::tab {
+                background-color: #404040;
+                border: 1px solid #666666;
+                padding: 5px 10px;
+                color: #ffffff;
+            }
+            QTabBar::tab:selected {
+                background-color: #2b2b2b;
+            }
+            QLabel {
+                color: #ffffff;
+            }
+        """)
 
     def closeEvent(self, event):
         """Handle window close - ensure BLE is properly disconnected."""

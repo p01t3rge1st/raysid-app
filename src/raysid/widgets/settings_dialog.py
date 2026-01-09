@@ -1,11 +1,45 @@
 """Settings dialog for spectrum analysis parameters."""
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLabel, QSlider, QPushButton, QGroupBox, QMessageBox
+    QLabel, QSlider, QPushButton, QGroupBox, QMessageBox, QComboBox
 )
 from PyQt5.QtCore import Qt, QSettings
+
+
+def detect_system_theme() -> str:
+    """Detect system theme preference. Returns 'light' or 'dark'."""
+    try:
+        if sys.platform == "darwin":  # macOS
+            result = subprocess.run(
+                ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                capture_output=True, text=True, timeout=5
+            )
+            return "dark" if result.returncode == 0 else "light"
+        
+        elif sys.platform == "win32":  # Windows
+            result = subprocess.run(
+                ["reg", "query", "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "/v", "AppsUseLightTheme"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and "0x0" in result.stdout:
+                return "dark"
+            return "light"
+        
+        else:  # Linux and others
+            # Check common environment variables
+            if os.environ.get("GTK_THEME", "").lower().find("dark") != -1:
+                return "dark"
+            if os.environ.get("QT_QPA_PLATFORMTHEME", "").lower().find("dark") != -1:
+                return "dark"
+            # Default to light
+            return "light"
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return "light"
 
 
 class SettingsDialog(QDialog):
@@ -21,6 +55,18 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Settings")
         self.setMinimumWidth(400)
         layout = QVBoxLayout(self)
+
+        # --- Theme Group ---
+        theme_group = QGroupBox("Appearance")
+        theme_layout = QFormLayout(theme_group)
+
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem("Light", "light")
+        self.theme_combo.addItem("Dark", "dark")
+        self.theme_combo.addItem("System", "system")
+        theme_layout.addRow("Theme:", self.theme_combo)
+
+        layout.addWidget(theme_group)
 
         # --- Peak Detection Group ---
         peak_group = QGroupBox("Peak Detection")
@@ -92,14 +138,23 @@ class SettingsDialog(QDialog):
         """Load settings from QSettings."""
         sensitivity = self.settings.value("peak/sensitivity", 50, type=int)
         smooth_window = self.settings.value("smooth/window", 21, type=int)
+        theme = self.settings.value("ui/theme", "system", type=str)
 
         self.sensitivity_slider.setValue(sensitivity)
         self.smooth_slider.setValue(smooth_window)
+        
+        # Set theme combo
+        index = self.theme_combo.findData(theme)
+        if index >= 0:
+            self.theme_combo.setCurrentIndex(index)
+        else:
+            self.theme_combo.setCurrentIndex(2)  # Default to system
 
     def _save_and_close(self):
         """Save settings and close dialog."""
         self.settings.setValue("peak/sensitivity", self.sensitivity_slider.value())
         self.settings.setValue("smooth/window", self.smooth_slider.value())
+        self.settings.setValue("ui/theme", self.theme_combo.currentData())
         self.settings.sync()
         self.accept()
 
@@ -110,3 +165,7 @@ class SettingsDialog(QDialog):
     def get_smooth_window(self) -> int:
         """Get smoothing window size (odd number 5-51)."""
         return self.smooth_slider.value()
+
+    def get_theme(self) -> str:
+        """Get selected theme ('light', 'dark', or 'system')."""
+        return self.theme_combo.currentData()
