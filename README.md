@@ -2,6 +2,10 @@
 
 Desktop app for Raysid gamma spectrometer. BLE connection, spectrum plot, CPS/dose readout.
 
+![Spectrum view](docs/images/screenshot.png)
+
+![CPS view](docs/images/screenshot2.png)
+
 ## Install
 
 ```bash
