@@ -13,10 +13,10 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QSettings
 from PyQt5.QtGui import QIcon
 
-from widgets.spectrum_widget import SpectrumWidget
-from widgets.cps_widget import CPSWidget
-from widgets.settings_dialog import SettingsDialog
-from ble_worker import BleWorker
+from raysid.widgets.spectrum_widget import SpectrumWidget
+from raysid.widgets.cps_widget import CPSWidget
+from raysid.widgets.settings_dialog import SettingsDialog
+from raysid.ble_worker import BleWorker
 
 
 class MainWindow(QMainWindow):

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raysid-app"
+version = "1.0.0"
+description = "PyQt5 GUI application for Raysid gamma spectrometer with BLE support"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Mati"}
+]
+keywords = ["raysid", "gamma", "spectrometer", "ble", "pyqt5"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "PyQt5>=5.15",
+    "qasync>=0.24",
+    "bleak>=0.21",
+    "matplotlib>=3.5",
+    "numpy>=1.21",
+    "scipy>=1.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/twój-user/raysid-app"
+Repository = "https://github.com/twój-user/raysid-app.git"
+
+[project.scripts]
+raysid-app = "raysid.__main__:main"
+
+[project.gui-scripts]
+raysid-app-gui = "raysid.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+raysid = ["*.md", "resources/*"]

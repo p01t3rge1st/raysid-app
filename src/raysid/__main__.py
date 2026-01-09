@@ -2,7 +2,7 @@
 """
 Raysid Gamma Spectrometer - PyQt5 Application
 
-Demonstrates the raysid_api library with a modern GUI:
+Desktop GUI for interfacing with Raysid gamma spectrometer devices via BLE:
 - BLE device scanning and connection
 - Real-time CPS / dose rate display
 - Live spectrum plot with peak detection
@@ -12,38 +12,39 @@ import os
 import sys
 import signal
 import asyncio
-from pathlib import Path
 
-# Fix Qt platform plugin path for pip-installed PyQt5 in virtualenvs
+
 def _ensure_qt_platform_plugin():
-    pyver = f"python{sys.version_info.major}.{sys.version_info.minor}"
-    project_root = Path(__file__).resolve().parent
-    # Don't resolve() sys.executable - it follows symlinks to system Python
-    venv_root = Path(sys.executable).parent.parent
+    """
+    Ensure Qt can find platform plugins (xcb, wayland, etc.) when installed via pip.
+    
+    PyQt5 bundles its own Qt plugins. We find them by locating PyQt5's install path
+    and pointing QT_QPA_PLATFORM_PLUGIN_PATH there. This works regardless of whether
+    the package is installed in a venv, user site-packages, or system-wide.
+    """
+    if "QT_QPA_PLATFORM_PLUGIN_PATH" in os.environ:
+        return  # User already set it, don't override
+    
+    try:
+        import PyQt5
+        pyqt5_path = os.path.dirname(PyQt5.__file__)
+        plugins_path = os.path.join(pyqt5_path, "Qt5", "plugins", "platforms")
+        
+        if os.path.isdir(plugins_path):
+            os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = plugins_path
+    except ImportError:
+        pass  # PyQt5 not installed, will fail later with clear error
 
-    candidates = [
-        venv_root / "lib" / pyver / "site-packages" / "PyQt5" / "Qt5" / "plugins" / "platforms",
-        project_root / ".venv" / "lib" / pyver / "site-packages" / "PyQt5" / "Qt5" / "plugins" / "platforms",
-        project_root / "venv" / "lib" / pyver / "site-packages" / "PyQt5" / "Qt5" / "plugins" / "platforms",
-    ]
 
-    for path in candidates:
-        if path.exists():
-            os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", str(path))
-            break
-
-
+# Must be called before importing any PyQt5 modules
 _ensure_qt_platform_plugin()
 
 from PyQt5.QtWidgets import QApplication
 import qasync
 
-# Ensure raysid_api is importable
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from raysid.widgets.main_window import MainWindow
 
-from widgets.main_window import MainWindow
-
-# Global reference for signal handler
+# Global references for signal handler
 _window = None
 _loop = None
 
@@ -59,6 +60,7 @@ def signal_handler(sig, frame):
 
 
 def main():
+    """Entry point for raysid-app command."""
     global _window, _loop
     
     app = QApplication(sys.argv)
