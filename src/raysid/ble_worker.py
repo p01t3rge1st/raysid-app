@@ -173,6 +173,60 @@ class BleWorker(QObject):
             out ^= b
         return out & 0xFF
 
+    @staticmethod
+    def _checksum3(data: bytes) -> int:
+        """Checksum3: XOR of 3-byte big-endian words.
+        
+        Used to validate spectrum packets (type 0x30/0x31/0x32).
+        Spectrum frame structure: [len][type][...data...][chk1][chk2][chk3]
+        where checksum3 is calculated over all bytes EXCEPT the last 3 checksum bytes.
+        """
+        out = 0
+        length = len(data)
+        for i in range(0, length, 3):
+            value = 0
+            if i < length:
+                value |= (data[i] & 0xFF) << 16
+            if i + 1 < length:
+                value |= (data[i + 1] & 0xFF) << 8
+            if i + 2 < length:
+                value |= data[i + 2] & 0xFF
+            out ^= value
+        return out & 0xFFFFFF
+
+    def _validate_spectrum_checksum(self, frame: bytes) -> bool:
+        """Validate spectrum packet checksum (last 3 bytes, little-endian).
+        
+        Returns True if checksum matches, False otherwise.
+        Checksum is stored as little-endian 3-byte value at the end of frame.
+        """
+        if len(frame) < 6:
+            return False
+        
+        # Last 3 bytes are checksum (little-endian)
+        chk_bytes = frame[-3:]
+        # Convert from little-endian to integer
+        expected = (chk_bytes[2] << 16) | (chk_bytes[1] << 8) | chk_bytes[0]
+        
+        # Calculate checksum over all bytes except the last 3
+        core = frame[:-3]
+        calculated = self._checksum3(core)
+        
+        is_valid = (calculated == expected)
+        ptype = frame[1] if len(frame) > 1 else 0
+        length = frame[0] or 256
+        
+        if is_valid:
+            msg = f"{self.GREEN}[SPECTRUM ✓ ACCEPT]{self.RESET} type=0x{ptype:02X} len={length} checksum={expected:06X}"
+            print(msg)
+            log_to_file(f"[SPECTRUM ✓ ACCEPT] type=0x{ptype:02X} len={length} checksum={expected:06X}")
+        else:
+            msg = f"{self.RED}[SPECTRUM ✗ REJECT]{self.RESET} type=0x{ptype:02X} len={length} expected={expected:06X} calculated={calculated:06X}"
+            print(msg)
+            log_to_file(f"[SPECTRUM ✗ REJECT] type=0x{ptype:02X} len={length} expected={expected:06X} calculated={calculated:06X}")
+        
+        return is_valid
+
     def _notification_handler(self, handle, data: bytearray):
         """Handle incoming BLE notifications.
         
@@ -233,16 +287,17 @@ class BleWorker(QObject):
             ptype = raw[1]
             declared_len = 256 if length_byte == 0 else length_byte
             
-            # Large spectrum packets (256 bytes) need buffering
-            if ptype in self.SPECTRUM_TYPES and declared_len == 256:
-                # Start buffering spectrum
+            # ALL spectrum packets need buffering (both small and large)
+            # because they can arrive fragmented across multiple notifications
+            if ptype in self.SPECTRUM_TYPES:
+                # Start buffering spectrum (small or large)
                 self._spectrum_buffer = bytearray(raw)
-                self._spectrum_expected_len = 256
+                self._spectrum_expected_len = declared_len
                 self._spectrum_buffer_start_time = now
-                log_to_file(f"[SPEC START] type=0x{ptype:02X} buffering {len(raw)}/{256}")
+                log_to_file(f"[SPEC START] type=0x{ptype:02X} len={declared_len} buffering {len(raw)}/{declared_len}")
                 return
         
-        # Complete packet (small spectrum, CPS, Battery) - parse directly
+        # Complete packet (CPS, Battery) - parse directly
         self._parse_frame(raw)
 
     def _process_buffer(self):
@@ -441,6 +496,11 @@ class BleWorker(QObject):
     def _parse_spectrum(self, frame: bytes) -> Optional[Dict]:
         """Parse spectrum packet (type 0x30/0x31/0x32) using diff encoding from API1."""
         length = frame[0] or 256
+        
+        # Validate spectrum checksum (last 3 bytes)
+        if not self._validate_spectrum_checksum(frame):
+            log_to_file(f"[SPEC REJECT] checksum validation failed")
+            return None
         
         # Note: Spectrum packets have checksum in last 3 bytes but format differs from CPS
         # The limit = length - 3 already excludes them from data parsing
