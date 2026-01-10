@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements-build.txt
+      
+      - name: Build Windows executable
+        run: |
+          pyinstaller --clean --noconfirm raysid-app.spec
+      
+      - name: Create archive
+        run: |
+          cd dist
+          powershell Compress-Archive -Path raysid-app -DestinationPath raysid-app-windows-x64.zip
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raysid-app-windows
+          path: dist/raysid-app-windows-x64.zip
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/raysid-app-windows-x64.zip
+          body: |
+            ## Raysid App - Windows Release
+            
+            **Installation:**
+            1. Download `raysid-app-windows-x64.zip`
+            2. Extract to any folder
+            3. Run `raysid-app.exe`
+            
+            **Requirements:**
+            - Windows 10/11 (64-bit)
+            - Bluetooth adapter
+            
+            See [README.md](https://github.com/${{ github.repository }}/blob/master/README.md) for usage instructions.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Test installation
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          python -c "import raysid; print('✓ Import successful')"

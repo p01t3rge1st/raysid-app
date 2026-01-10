@@ -15,7 +15,7 @@ from bleak import BleakClient
 # File logger for debugging (writes to user's home directory)
 _log_path = os.path.join(os.path.expanduser("~"), ".raysid_debug.log")
 try:
-    _log_file = open(_log_path, "a")
+    _log_file = open(_log_path, "a", encoding="utf-8")
 except (IOError, PermissionError):
     _log_file = None
 
@@ -23,8 +23,11 @@ def log_to_file(msg: str):
     if _log_file is None:
         return
     ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-    _log_file.write(f"{ts} {msg}\n")
-    _log_file.flush()
+    try:
+        _log_file.write(f"{ts} {msg}\n")
+        _log_file.flush()
+    except (UnicodeEncodeError, OSError):
+        pass  # Silently ignore encoding errors
 
 
 class BleWorker(QObject):

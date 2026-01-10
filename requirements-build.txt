@@ -1,0 +1,8 @@
+# Build dependencies for creating Windows executable
+PyQt5>=5.15
+qasync>=0.24
+bleak>=0.21
+matplotlib>=3.5
+numpy>=1.21
+scipy>=1.7
+pyinstaller>=6.0

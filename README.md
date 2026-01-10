@@ -8,14 +8,29 @@ Desktop app for Raysid gamma spectrometer. BLE connection, spectrum plot, CPS/do
 
 ## Install
 
+### Windows
+
+Download portable executable from [Releases](https://github.com/p01t3rge1st/raysid-app/releases/latest):
+
+1. Download `raysid-app-windows-x64.zip`
+2. Extract to any folder
+3. Run `raysid-app.exe`
+
+**Requirements:** Windows 10/11 (64-bit), Bluetooth adapter
+
+### Linux / macOS
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/p01t3rge1st/raysid-app/master/install.sh | bash
 ```
 
-Works on Linux and macOS. Requires Python 3.10+.
+Requires Python 3.10+.
 
 ## Run
 
+**Windows:** Double-click `raysid-app.exe`
+
+**Linux/macOS:**
 ```bash
 raysid-app
 ```
@@ -28,7 +43,9 @@ raysid-app
 
 **Linux BLE permissions.** You may need to run with sudo or add user to `bluetooth` group.
 
-## Manual Install
+**Windows Bluetooth.** May require "Allow apps to access Bluetooth" in Windows Settings → Privacy & security → Bluetooth.
+
+## Manual Install (Linux/macOS)
 
 If the script fails:
 
@@ -44,9 +61,23 @@ pip install --user git+https://github.com/p01t3rge1st/raysid-app.git
 
 ## Uninstall
 
+**Windows:** Delete the extracted folder
+
+**Linux/macOS:**
 ```bash
 pipx uninstall raysid-app
 ```
+
+## Development
+
+Build Windows executable locally:
+
+```bash
+pip install -r requirements-build.txt
+pyinstaller --clean --noconfirm raysid-app.spec
+```
+
+Output: `dist/raysid-app/raysid-app.exe`
 
 ## License
 
