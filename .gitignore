@@ -28,7 +28,30 @@ MANIFEST
 
 # PyInstaller
 *.manifest
-*.spec
+# Don't ignore our spec file - we need it!
+# *.spec
+
+# Windows build artifacts
+build/
+dist/
+*.exe
+*.dll
+*.pyd
+*.zip
+*.spec~
+*.log
+
+# PyInstaller workpath
+*.toc
+*.pkg
+*.pyz
+*.xref
+
+# Windows specific
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
 # Installer logs
 pip-log.txt

@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Build Windows executable locally."""
+"""Build executable locally."""
 import subprocess
 import sys
 import shutil
+import platform
 from pathlib import Path
 
 def main():
-    print("Building Raysid App for Windows...")
+    platform_name = platform.system()
+    print(f"Building Raysid App for {platform_name}...")
+    
+    # Check if running in virtual environment
+    if sys.prefix == sys.base_prefix:
+        print("ERROR: Not running in a virtual environment!")
+        print("Please activate the virtual environment first:")
+        print("  source .venv/bin/activate")
+        sys.exit(1)
     
     # Check if PyInstaller is installed
     try:
@@ -24,8 +33,9 @@ def main():
     
     # Build executable
     print("\n[2/3] Building executable (this may take a few minutes)...")
+    # Use the Python executable from the current environment to run PyInstaller
     result = subprocess.run(
-        ["pyinstaller", "--clean", "--noconfirm", "raysid-app.spec"],
+        [sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", "raysid-app.spec"],
         capture_output=False
     )
     
@@ -41,15 +51,20 @@ def main():
         sys.exit(1)
     
     # Create zip
-    shutil.make_archive("dist/raysid-app-windows-x64", "zip", "dist", "raysid-app")
+    platform_name = platform.system().lower()
+    archive_name = f"dist/raysid-app-{platform_name}-x64"
+    shutil.make_archive(archive_name, "zip", "dist", "raysid-app")
+    
+    # Determine executable name based on platform
+    exe_name = "raysid-app.exe" if platform_name == "windows" else "raysid-app"
     
     print("\n✅ Build complete!")
     print(f"\n📦 Output:")
     print(f"   Folder: dist/raysid-app/")
-    print(f"   Executable: dist/raysid-app/raysid-app.exe")
-    print(f"   Archive: dist/raysid-app-windows-x64.zip")
+    print(f"   Executable: dist/raysid-app/{exe_name}")
+    print(f"   Archive: {archive_name}.zip")
     print(f"\n💡 Test the executable:")
-    print(f"   cd dist/raysid-app && ./raysid-app.exe")
+    print(f"   cd dist/raysid-app && ./{exe_name}")
 
 if __name__ == "__main__":
     main()
